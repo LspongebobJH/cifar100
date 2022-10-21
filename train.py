@@ -107,8 +107,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--backbone', type=str, default='resnet50')
     parser.add_argument('--ft-type', type=str, default='attn', choices=['attn', 'ws'])
-    parser.add_argument('--epochs', type=int, default=300)
-    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--epochs', type=int, default=200)
+    parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--base', action='store_true', default=False)
@@ -165,7 +165,11 @@ if __name__ == '__main__':
     iter_per_epoch = len(cifar100_training_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.backbone+'_'+args.ft_type, settings.TIME_NOW)
+    if args.base:
+        model_type = 'base'
+    else:
+        model_type = args.ft_type
+    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.backbone+'_'+model_type, settings.TIME_NOW)
 
     # create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
@@ -184,13 +188,22 @@ if __name__ == '__main__':
 
         #start to save best performance model after learning rate decay to 0.01
         if epoch > settings.MILESTONES[1] and best_acc < acc:
-            weights_path = checkpoint_path.format(model=args.backbone+'_'+args.ft_type, epoch=epoch, type='best')
+            weights_path = checkpoint_path.format(model=args.backbone, epoch=epoch, type='best')
+            print('saving weights file to {}'.format(weights_path))
+            th.save(backbone.state_dict(), weights_path)
+            
+            weights_path = checkpoint_path.format(model=args.ft_type, epoch=epoch, type='best')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
+
             best_acc = acc
             continue
 
         if not epoch % settings.SAVE_EPOCH:
-            weights_path = checkpoint_path.format(model=args.backbone+'_'+args.ft_type, epoch=epoch, type='regular')
+            weights_path = checkpoint_path.format(model=args.backbone, epoch=epoch, type='regular')
+            print('saving weights file to {}'.format(weights_path))
+            th.save(backbone.state_dict(), weights_path)
+
+            weights_path = checkpoint_path.format(model=args.ft_type, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
