@@ -29,13 +29,12 @@ def train(epoch):
 
         optimizer.zero_grad()
         emb = backbone(images)
-        if not args.base:
-            if args.ft_type == 'attn':
-                g = build_g(emb, idx).to(args.device)
-                logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
-            elif args.ft_type == 'ws':
-                logits = ft(emb, idx)
-        else:
+        if ft_type == 'attn':
+            g = build_g(emb, idx).to(args.device)
+            logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+        elif ft_type == 'ws':
+            logits = ft(emb, idx)
+        else: # ft_type == 'base'
             logits = ft(emb)
         loss = loss_function(logits, labels)
         loss.backward()
@@ -76,13 +75,12 @@ def eval_training(epoch=0):
         images = images.to(args.device)
 
         emb = backbone(images)
-        if not args.base:
-            if args.ft_type == 'attn':
-                g = build_g(emb, idx).to(args.device)
-                logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
-            elif args.ft_type == 'ws':
-                logits = ft(emb, idx)
-        else:
+        if ft_type == 'attn':
+            g = build_g(emb, idx).to(args.device)
+            logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+        elif ft_type == 'ws':
+            logits = ft(emb, idx)
+        else: # ft_type == 'base'
             logits = ft(emb)
         loss = loss_function(logits, labels)
 
@@ -124,6 +122,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
+    if args.base:
+        ft_type = 'base'
+    else:
+        ft_type = args.ft_type
+
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
         settings.CIFAR100_TRAIN_MEAN,
@@ -148,13 +151,12 @@ if __name__ == '__main__':
     backbone = backbone.to(args.device)
 
     # Create attention aggregation part
-    if not args.base:
-        if args.ft_type == 'attn':
-            ft = GAT(n_layers=1, n_heads_list=args.n_heads_list, in_dim=in_dim, 
-                    hid_dim=args.hid_dim, out_dim=args.num_classes, dropout=0.6, neg_slope=0.2).to(args.device)
-        elif args.ft_type == 'ws':
-            ft = WS(n_in_nodes=5, in_dim=in_dim, out_dim=args.num_classes).to(args.device)
-    else:
+    if ft_type == 'attn':
+        ft = GAT(n_layers=1, n_heads_list=args.n_heads_list, in_dim=in_dim, 
+                hid_dim=args.hid_dim, out_dim=args.num_classes, dropout=0.6, neg_slope=0.2).to(args.device)
+    elif ft_type == 'ws':
+        ft = WS(n_in_nodes=5, in_dim=in_dim, out_dim=args.num_classes).to(args.device)
+    else: # ft_type == 'base'
         ft = nn.Linear(in_dim, args.num_classes).to(args.device)
 
 
@@ -165,11 +167,7 @@ if __name__ == '__main__':
     iter_per_epoch = len(cifar100_training_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
-    if args.base:
-        model_type = 'base'
-    else:
-        model_type = args.ft_type
-    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.backbone+'_'+model_type, settings.TIME_NOW)
+    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.backbone+'_'+ft_type, settings.TIME_NOW)
 
     # create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
@@ -192,7 +190,7 @@ if __name__ == '__main__':
             print('saving weights file to {}'.format(weights_path))
             th.save(backbone.state_dict(), weights_path)
             
-            weights_path = checkpoint_path.format(model=args.ft_type, epoch=epoch, type='best')
+            weights_path = checkpoint_path.format(model=ft_type, epoch=epoch, type='best')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
 
@@ -204,6 +202,6 @@ if __name__ == '__main__':
             print('saving weights file to {}'.format(weights_path))
             th.save(backbone.state_dict(), weights_path)
 
-            weights_path = checkpoint_path.format(model=args.ft_type, epoch=epoch, type='regular')
+            weights_path = checkpoint_path.format(model=ft_type, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
