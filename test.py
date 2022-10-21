@@ -35,7 +35,7 @@ if __name__ == '__main__':
         settings.CIFAR100_TRAIN_STD,
         #settings.CIFAR100_PATH,
         num_workers=4,
-        batch_size=args.b,
+        batch_size=args.batch_size,
     )
 
     net.load_state_dict(th.load(args.weights))
