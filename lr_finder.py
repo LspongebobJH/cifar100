@@ -4,10 +4,10 @@ import glob
 import os
 
 import cv2
-import torch
+import torch as th
 import torch.nn as nn
 import torch.optim as optim
-from th.utils.data import DataLoader
+from torch.utils.data import DataLoader
 import numpy as np
 
 from torchvision import transforms
@@ -19,7 +19,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
-from th.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler
 
 
 class FindLR(_LRScheduler):

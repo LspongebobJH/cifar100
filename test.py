@@ -12,9 +12,9 @@ import argparse
 
 from matplotlib import pyplot as plt
 
-import torch
+import torch as th
 import torchvision.transforms as transforms
-from th.utils.data import DataLoader
+from torch.utils.data import DataLoader
 
 from conf import settings
 from utils import get_network, get_test_dataloader
@@ -53,8 +53,6 @@ if __name__ == '__main__':
             if args.gpu:
                 image = image.cuda()
                 label = label.cuda()
-                print('GPU INFO.....')
-                print(th.cuda.memory_summary(), end='')
 
 
             output = net(image)
@@ -68,10 +66,6 @@ if __name__ == '__main__':
 
             #compute top1
             correct_1 += correct[:, :1].sum()
-
-    if args.gpu:
-        print('GPU INFO.....')
-        print(th.cuda.memory_summary(), end='')
 
     print()
     print("Top 1 err: ", 1 - correct_1 / len(cifar100_test_loader.dataset))
