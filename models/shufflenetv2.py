@@ -20,7 +20,7 @@ def channel_split(x, split):
         split:(int) channel size for each pieces
     """
     assert x.size(1) == split * 2
-    return torch.split(x, split, dim=1)
+    return th.split(x, split, dim=1)
 
 def channel_shuffle(x, groups):
     """channel shuffle operation
@@ -92,7 +92,7 @@ class ShuffleUnit(nn.Module):
 
         shortcut = self.shortcut(shortcut)
         residual = self.residual(residual)
-        x = torch.cat([shortcut, residual], dim=1)
+        x = th.cat([shortcut, residual], dim=1)
         x = channel_shuffle(x, 2)
 
         return x

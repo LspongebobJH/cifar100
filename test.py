@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 
 import torch
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from th.utils.data import DataLoader
 
 from conf import settings
 from utils import get_network, get_test_dataloader
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         batch_size=args.b,
     )
 
-    net.load_state_dict(torch.load(args.weights))
+    net.load_state_dict(th.load(args.weights))
     print(net)
     net.eval()
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     correct_5 = 0.0
     total = 0
 
-    with torch.no_grad():
+    with th.no_grad():
         for n_iter, (image, label) in enumerate(cifar100_test_loader):
             print("iteration: {}\ttotal {} iterations".format(n_iter + 1, len(cifar100_test_loader)))
 
@@ -54,7 +54,7 @@ if __name__ == '__main__':
                 image = image.cuda()
                 label = label.cuda()
                 print('GPU INFO.....')
-                print(torch.cuda.memory_summary(), end='')
+                print(th.cuda.memory_summary(), end='')
 
 
             output = net(image)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     if args.gpu:
         print('GPU INFO.....')
-        print(torch.cuda.memory_summary(), end='')
+        print(th.cuda.memory_summary(), end='')
 
     print()
     print("Top 1 err: ", 1 - correct_1 / len(cifar100_test_loader.dataset))

@@ -1,10 +1,4 @@
 # train.py
-#!/usr/bin/env	python3
-
-""" train network using pytorch
-
-author baiyu
-"""
 
 import os
 import sys
@@ -13,7 +7,7 @@ import time
 from datetime import datetime
 
 import numpy as np
-import torch
+import torch as th
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
@@ -74,7 +68,7 @@ def train(epoch):
 
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
-@torch.no_grad()
+@th.no_grad()
 def eval_training(epoch=0, tb=True):
 
     start = time.time()
@@ -99,7 +93,7 @@ def eval_training(epoch=0, tb=True):
     finish = time.time()
     if args.gpu:
         print('GPU INFO.....')
-        print(torch.cuda.memory_summary(), end='')
+        print(th.cuda.memory_summary(), end='')
     print('Evaluating Network.....')
     print('Test set: Epoch: {}, Average loss: {:.4f}, Accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
         epoch,
@@ -170,7 +164,7 @@ if __name__ == '__main__':
     #so the only way is to create a new tensorboard log
     writer = SummaryWriter(log_dir=os.path.join(
             settings.LOG_DIR, args.net, settings.TIME_NOW))
-    input_tensor = torch.Tensor(1, 3, 32, 32)
+    input_tensor = th.Tensor(1, 3, 32, 32)
     if args.gpu:
         input_tensor = input_tensor.cuda()
     writer.add_graph(net, input_tensor)
@@ -187,7 +181,7 @@ if __name__ == '__main__':
             weights_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder, best_weights)
             print('found best acc weights file:{}'.format(weights_path))
             print('load best training file to test acc...')
-            net.load_state_dict(torch.load(weights_path))
+            net.load_state_dict(th.load(weights_path))
             best_acc = eval_training(tb=False)
             print('best acc is {:0.2f}'.format(best_acc))
 
@@ -196,7 +190,7 @@ if __name__ == '__main__':
             raise Exception('no recent weights file were found')
         weights_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder, recent_weights_file)
         print('loading weights file {} to resume training.....'.format(weights_path))
-        net.load_state_dict(torch.load(weights_path))
+        net.load_state_dict(th.load(weights_path))
 
         resume_epoch = last_epoch(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
 
@@ -216,13 +210,13 @@ if __name__ == '__main__':
         if epoch > settings.MILESTONES[1] and best_acc < acc:
             weights_path = checkpoint_path.format(net=args.net, epoch=epoch, type='best')
             print('saving weights file to {}'.format(weights_path))
-            torch.save(net.state_dict(), weights_path)
+            th.save(net.state_dict(), weights_path)
             best_acc = acc
             continue
 
         if not epoch % settings.SAVE_EPOCH:
             weights_path = checkpoint_path.format(net=args.net, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
-            torch.save(net.state_dict(), weights_path)
+            th.save(net.state_dict(), weights_path)
 
     writer.close()

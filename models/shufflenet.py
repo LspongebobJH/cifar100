@@ -139,10 +139,10 @@ class ShuffleNetUnit(nn.Module):
             self.fusion = self._cat
 
     def _add(self, x, y):
-        return torch.add(x, y)
+        return th.add(x, y)
 
     def _cat(self, x, y):
-        return torch.cat([x, y], dim=1)
+        return th.cat([x, y], dim=1)
 
     def forward(self, x):
         shortcut = self.shortcut(x)

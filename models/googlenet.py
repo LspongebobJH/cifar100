@@ -59,7 +59,7 @@ class Inception(nn.Module):
         )
 
     def forward(self, x):
-        return torch.cat([self.b1(x), self.b2(x), self.b3(x), self.b4(x)], dim=1)
+        return th.cat([self.b1(x), self.b2(x), self.b3(x), self.b4(x)], dim=1)
 
 
 class GoogleNet(nn.Module):

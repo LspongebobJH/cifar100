@@ -66,7 +66,7 @@ class InceptionA(nn.Module):
 
         outputs = [branch1x1, branch5x5, branch3x3, branchpool]
 
-        return torch.cat(outputs, 1)
+        return th.cat(outputs, 1)
 
 #downsample
 #Factorization into smaller convolutions
@@ -102,7 +102,7 @@ class InceptionB(nn.Module):
         #figure 10."""
         outputs = [branch3x3, branch3x3stack, branchpool]
 
-        return torch.cat(outputs, 1)
+        return th.cat(outputs, 1)
 
 #Factorizing Convolutions with Large Filter Size
 class InceptionC(nn.Module):
@@ -150,7 +150,7 @@ class InceptionC(nn.Module):
 
         outputs = [branch1x1, branch7x7, branch7x7stack, branchpool]
 
-        return torch.cat(outputs, 1)
+        return th.cat(outputs, 1)
 
 class InceptionD(nn.Module):
 
@@ -184,7 +184,7 @@ class InceptionD(nn.Module):
 
         outputs = [branch3x3, branch7x7, branchpool]
 
-        return torch.cat(outputs, 1)
+        return th.cat(outputs, 1)
 
 
 #same
@@ -224,7 +224,7 @@ class InceptionE(nn.Module):
             self.branch3x3_2a(branch3x3),
             self.branch3x3_2b(branch3x3)
         ]
-        branch3x3 = torch.cat(branch3x3, 1)
+        branch3x3 = th.cat(branch3x3, 1)
 
         # x -> 1x1 -> 3x3 -> 1x3
         # x -> 1x1 -> 3x3 -> 3x1
@@ -235,13 +235,13 @@ class InceptionE(nn.Module):
             self.branch3x3stack_3a(branch3x3stack),
             self.branch3x3stack_3b(branch3x3stack)
         ]
-        branch3x3stack = torch.cat(branch3x3stack, 1)
+        branch3x3stack = th.cat(branch3x3stack, 1)
 
         branchpool = self.branch_pool(x)
 
         outputs = [branch1x1, branch3x3, branch3x3stack, branchpool]
 
-        return torch.cat(outputs, 1)
+        return th.cat(outputs, 1)
 
 class InceptionV3(nn.Module):
 

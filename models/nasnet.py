@@ -103,7 +103,7 @@ class Fit(nn.Module):
             prev = self.relu(prev)
             p1 = self.p1(prev)
             p2 = self.p2(prev)
-            prev = torch.cat([p1, p2], 1)
+            prev = th.cat([p1, p2], 1)
             prev = self.bn(prev)
 
         elif prev.size(1) != self.filters:
@@ -185,7 +185,7 @@ class NormalCell(nn.Module):
         x4 = self.block4_left(prev) + self.block4_right(prev)
         x5 = self.block5_left(prev) + self.block5_right(prev)
 
-        return torch.cat([prev, x1, x2, x3, x4, x5], 1), x
+        return th.cat([prev, x1, x2, x3, x4, x5], 1), x
 
 class ReductionCell(nn.Module):
 
@@ -232,7 +232,7 @@ class ReductionCell(nn.Module):
         layer2block1 = self.layer2block1_left(h) + self.layer2block1_right(layer1block1)
         layer2block2 = self.layer2block2_left(layer1block1) + self.layer2block2_right(layer1block2)
 
-        return torch.cat([
+        return th.cat([
             layer1block2, #https://github.com/keras-team/keras-applications/blob/master/keras_applications/nasnet.py line 739
             layer1block3,
             layer2block1,

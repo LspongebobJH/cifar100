@@ -8,18 +8,18 @@ resnet with stochastic depth
 """
 import torch
 import torch.nn as nn
-from torch.distributions.bernoulli import Bernoulli
+from th.distributions.bernoulli import Bernoulli
 import random
 
 
-class StochasticDepthBasicBlock(torch.jit.ScriptModule):
+class StochasticDepthBasicBlock(th.jit.ScriptModule):
 
     expansion=1
 
     def __init__(self, p, in_channels, out_channels, stride=1):
         super().__init__()
 
-        #self.p = torch.tensor(p).float()
+        #self.p = th.tensor(p).float()
         self.p = p
         self.residual = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
@@ -37,15 +37,15 @@ class StochasticDepthBasicBlock(torch.jit.ScriptModule):
                 nn.BatchNorm2d(out_channels)
             )
     def survival(self):
-        var = torch.bernoulli(torch.tensor(self.p).float())
-        return torch.equal(var, torch.tensor(1).float().to(var.device))
+        var = th.bernoulli(th.tensor(self.p).float())
+        return th.equal(var, th.tensor(1).float().to(var.device))
 
     @torch.jit.script_method
     def forward(self, x):
 
         if self.training:
             if self.survival():
-                # official torch implementation
+                # official th implementation
                 # function ResidualDrop:updateOutput(input)
                 #    local skip_forward = self.skip:forward(input)
                 #    self.output:resizeAs(skip_forward):copy(skip_forward)
@@ -88,7 +88,7 @@ class StochasticDepthBasicBlock(torch.jit.ScriptModule):
         return x
 
 
-class StochasticDepthBottleNeck(torch.jit.ScriptModule):
+class StochasticDepthBottleNeck(th.jit.ScriptModule):
     """Residual block for resnet over 50 layers
 
     """
@@ -117,8 +117,8 @@ class StochasticDepthBottleNeck(torch.jit.ScriptModule):
             )
 
     def survival(self):
-        var = torch.bernoulli(torch.tensor(self.p).float())
-        return torch.equal(var, torch.tensor(1).float().to(var.device))
+        var = th.bernoulli(th.tensor(self.p).float())
+        return th.equal(var, th.tensor(1).float().to(var.device))
 
     @torch.jit.script_method
     def forward(self, x):

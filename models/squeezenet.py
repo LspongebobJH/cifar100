@@ -38,7 +38,7 @@ class Fire(nn.Module):
     def forward(self, x):
 
         x = self.squeeze(x)
-        x = torch.cat([
+        x = th.cat([
             self.expand_1x1(x),
             self.expand_3x3(x)
         ], 1)

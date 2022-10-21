@@ -40,7 +40,7 @@ class Bottleneck(nn.Module):
         )
 
     def forward(self, x):
-        return torch.cat([x, self.bottle_neck(x)], 1)
+        return th.cat([x, self.bottle_neck(x)], 1)
 
 #"""We refer to layers between blocks as transition
 #layers, which do convolution and pooling."""

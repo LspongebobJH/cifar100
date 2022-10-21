@@ -10,10 +10,10 @@ import datetime
 import numpy
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler
+from th.optim.lr_scheduler import _LRScheduler
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from th.utils.data import DataLoader
 
 
 def get_network(args):
@@ -172,7 +172,7 @@ def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=Tru
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
         shuffle: whether to shuffle
-    Returns: train_data_loader:torch dataloader object
+    Returns: train_data_loader:th dataloader object
     """
 
     transform_train = transforms.Compose([
@@ -199,7 +199,7 @@ def get_test_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
         shuffle: whether to shuffle
-    Returns: cifar100_test_loader:torch dataloader object
+    Returns: cifar100_test_loader:th dataloader object
     """
 
     transform_test = transforms.Compose([
@@ -217,7 +217,7 @@ def compute_mean_std(cifar100_dataset):
     """compute the mean and std of cifar100 dataset
     Args:
         cifar100_training_dataset or cifar100_test_dataset
-        witch derived from class torch.utils.data
+        witch derived from class th.utils.data
 
     Returns:
         a tuple contains mean, std value of entire dataset

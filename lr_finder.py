@@ -7,7 +7,7 @@ import cv2
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from th.utils.data import DataLoader
 import numpy as np
 
 from torchvision import transforms
@@ -19,7 +19,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
-from torch.optim.lr_scheduler import _LRScheduler
+from th.optim.lr_scheduler import _LRScheduler
 
 
 class FindLR(_LRScheduler):
@@ -88,7 +88,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             predicts = net(images)
             loss = loss_function(predicts, labels)
-            if torch.isnan(loss).any():
+            if th.isnan(loss).any():
                 n += 1e8
                 break
             loss.backward()

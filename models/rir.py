@@ -157,7 +157,7 @@ class ResnetInResneet(nn.Module):
         x_residual, x_transient = self.rir6((x_residual, x_transient))
         x_residual, x_transient = self.rir7((x_residual, x_transient))
         x_residual, x_transient = self.rir8((x_residual, x_transient))
-        h = torch.cat([x_residual, x_transient], 1)
+        h = th.cat([x_residual, x_transient], 1)
         h = self.conv1(h)
         h = h.view(h.size()[0], -1)
         h = self.classifier(h)
@@ -167,7 +167,7 @@ class ResnetInResneet(nn.Module):
     def _weight_init(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                torch.nn.init.kaiming_normal(m.weight)
+                th.nn.init.kaiming_normal(m.weight)
                 m.bias.data.fill_(0.01)
 
 

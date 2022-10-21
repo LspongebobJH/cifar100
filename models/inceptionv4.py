@@ -65,20 +65,20 @@ class Inception_Stem(nn.Module):
             self.branch3x3_conv(x),
             self.branch3x3_pool(x)
         ]
-        x = torch.cat(x, 1)
+        x = th.cat(x, 1)
 
         x = [
             self.branch7x7a(x),
             self.branch7x7b(x)
         ]
-        x = torch.cat(x, 1)
+        x = th.cat(x, 1)
 
         x = [
             self.branchpoola(x),
             self.branchpoolb(x)
         ]
 
-        x = torch.cat(x, 1)
+        x = th.cat(x, 1)
 
         return x
 
@@ -116,7 +116,7 @@ class InceptionA(nn.Module):
             self.branchpool(x)
         ]
 
-        return torch.cat(x, 1)
+        return th.cat(x, 1)
 
 class ReductionA(nn.Module):
 
@@ -146,7 +146,7 @@ class ReductionA(nn.Module):
             self.branchpool(x)
         ]
 
-        return torch.cat(x, 1)
+        return th.cat(x, 1)
 
 class InceptionB(nn.Module):
 
@@ -184,7 +184,7 @@ class InceptionB(nn.Module):
             self.branchpool(x)
         ]
 
-        return torch.cat(x, 1)
+        return th.cat(x, 1)
 
 class ReductionB(nn.Module):
 
@@ -216,7 +216,7 @@ class ReductionB(nn.Module):
             self.branchpool(x)
         ]
 
-        return torch.cat(x, 1)
+        return th.cat(x, 1)
 
 class InceptionC(nn.Module):
 
@@ -251,14 +251,14 @@ class InceptionC(nn.Module):
             self.branch3x3stacka(branch3x3stack_output),
             self.branch3x3stackb(branch3x3stack_output)
         ]
-        branch3x3stack_output = torch.cat(branch3x3stack_output, 1)
+        branch3x3stack_output = th.cat(branch3x3stack_output, 1)
 
         branch3x3_output = self.branch3x3(x)
         branch3x3_output = [
             self.branch3x3a(branch3x3_output),
             self.branch3x3b(branch3x3_output)
         ]
-        branch3x3_output = torch.cat(branch3x3_output, 1)
+        branch3x3_output = th.cat(branch3x3_output, 1)
 
         branch1x1_output = self.branch1x1(x)
 
@@ -271,7 +271,7 @@ class InceptionC(nn.Module):
             branchpool
         ]
 
-        return torch.cat(output, 1)
+        return th.cat(output, 1)
 
 class InceptionV4(nn.Module):
 
@@ -348,7 +348,7 @@ class InceptionResNetA(nn.Module):
             self.branch3x3stack(x)
         ]
 
-        residual = torch.cat(residual, 1)
+        residual = th.cat(residual, 1)
         residual = self.reduction1x1(residual)
         shortcut = self.shortcut(x)
 
@@ -384,7 +384,7 @@ class InceptionResNetB(nn.Module):
             self.branch7x7(x)
         ]
 
-        residual = torch.cat(residual, 1)
+        residual = th.cat(residual, 1)
 
         #"""In general we picked some scaling factors between 0.1 and 0.3 to scale the residuals
         #before their being added to the accumulated layer activations (cf. Figure 20)."""
@@ -423,7 +423,7 @@ class InceptionResNetC(nn.Module):
             self.branch3x3(x)
         ]
 
-        residual = torch.cat(residual, 1)
+        residual = th.cat(residual, 1)
         residual = self.reduction1x1(residual) * 0.1
 
         shorcut = self.shorcut(x)
@@ -461,7 +461,7 @@ class InceptionResNetReductionA(nn.Module):
             self.branchpool(x)
         ]
 
-        return torch.cat(x, 1)
+        return th.cat(x, 1)
 
 class InceptionResNetReductionB(nn.Module):
 
@@ -498,7 +498,7 @@ class InceptionResNetReductionB(nn.Module):
             self.branchpool(x)
         ]
 
-        x = torch.cat(x, 1)
+        x = th.cat(x, 1)
         return x
 
 class InceptionResNetV2(nn.Module):
