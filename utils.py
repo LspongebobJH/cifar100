@@ -15,6 +15,31 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+def get_network(backbone):
+    """ return given network
+    """
+    if backbone == 'resnet18':
+        from models.resnet import resnet18
+        net = resnet18()
+    elif backbone == 'resnet34':
+        from models.resnet import resnet34
+        net = resnet34()
+    elif backbone == 'resnet50':
+        from models.resnet import resnet50
+        net = resnet50()
+    elif backbone == 'resnet101':
+        from models.resnet import resnet101
+        net = resnet101()
+    elif backbone == 'resnet152':
+        from models.resnet import resnet152
+        net = resnet152()
+    
+    else:
+        print('the network name you have entered is not supported yet')
+        sys.exit()
+
+    return net
+
 def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
     """ return training dataloader
     Args:

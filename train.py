@@ -8,12 +8,11 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import models
 from gnn import *
 from gnn_utils import *
 
 from conf import settings
-from utils import get_training_dataloader, get_test_dataloader, WarmUpLR
+from utils import get_training_dataloader, get_test_dataloader, WarmUpLR, get_network
 
 def train(epoch):
 
@@ -106,16 +105,14 @@ def eval_training(epoch=0):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--backbone', type=str, default='resnet18')
+    parser.add_argument('--backbone', type=str, default='resnet50')
     parser.add_argument('--ft-type', type=str, default='attn', choices=['attn', 'ws'])
-    parser.add_argument('--epochs', type=int, default=15)
-    parser.add_argument('--save-epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--batch-size', type=int, default=32)
-    parser.add_argument('--input-size', type=int, default=224)
     parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--base', action='store_true', default=False)
-    parser.add_argument('--lr', type=float, default=0.001, help='initial learning rate') 
+    parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate') 
     
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--num-workers', type=int, default=8)
@@ -145,10 +142,8 @@ if __name__ == '__main__':
     )
 
      # create backbone
-    backbone = models.__dict__[args.backbone](weights='DEFAULT')
+    backbone = get_network(args.backbone)
     in_dim = backbone.fc.in_features
-    for param in backbone.parameters():
-        param.requires_grad = False
     backbone.fc = nn.Identity()
     backbone = backbone.to(args.device)
 
@@ -162,17 +157,11 @@ if __name__ == '__main__':
     else:
         ft = nn.Linear(in_dim, args.num_classes).to(args.device)
 
-    # Set parameters that will be updated
-    params = []
-    for name, param in ft.named_parameters():
-        if param.requires_grad == True:
-            print(f"update param: {name}")
-            params.append(param)
 
     # set components
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    train_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    optimizer = optim.SGD(list(backbone.parameters())+list(ft.parameters()), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2)
     iter_per_epoch = len(cifar100_training_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
@@ -201,7 +190,7 @@ if __name__ == '__main__':
             best_acc = acc
             continue
 
-        if not epoch % args.save_epochs:
+        if not epoch % settings.SAVE_EPOCH:
             weights_path = checkpoint_path.format(model=args.backbone+'_'+args.ft_type, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
