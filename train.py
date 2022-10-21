@@ -1,39 +1,46 @@
 # train.py
 
 import os
-import sys
 import argparse
 import time
-from datetime import datetime
 
 import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.optim as optim
-from torchvision import models, datasets, transforms
+from torchvision import models
 from gnn import *
+from gnn_utils import *
 
 from conf import settings
-from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
-    most_recent_folder, most_recent_weights, last_epoch, best_acc_weights
+from utils import get_training_dataloader, get_test_dataloader, WarmUpLR
 
 def train(epoch):
 
     start = time.time()
-    net.train()
+    backbone.train()
+    ft.train()
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
-
-        if args.gpu:
-            labels = labels.cuda()
-            images = images.cuda()
+        if not args.base:
+            images, idx = aux_transforms(images, trans_list=['crop', 'horflip'], replica=2)
+            idx = idx.to(args.device)
+            target_imgs_idx = [th.where(idx == i)[0][0].item() for i in th.unique(idx)]
+        labels = labels.to(args.device)
+        images = images.to(args.device)
 
         optimizer.zero_grad()
-        outputs = net(images)
-        loss = loss_function(outputs, labels)
+        emb = backbone(images)
+        if not args.base:
+            if args.ft_type == 'attn':
+                g = build_g(emb, idx).to(args.device)
+                logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+            elif args.ft_type == 'ws':
+                logits = ft(emb, idx)
+        else:
+            logits = ft(emb)
+        loss = loss_function(logits, labels)
         loss.backward()
         optimizer.step()
-
-        n_iter = (epoch - 1) * len(cifar100_training_loader) + batch_index + 1
 
         print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
             loss.item(),
@@ -52,25 +59,36 @@ def train(epoch):
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
 @th.no_grad()
-def eval_training(epoch=0, tb=True):
+def eval_training(epoch=0):
 
     start = time.time()
-    net.eval()
+    backbone.eval()
+    ft.eval()
 
     test_loss = 0.0 # cost function error
     correct = 0.0
 
     for (images, labels) in cifar100_test_loader:
+        if not args.base:
+            images, idx = aux_transforms(images, trans_list=['crop', 'horflip'], replica=2)
+            idx = idx.to(args.device)
+            target_imgs_idx = [th.where(idx == i)[0][0].item() for i in th.unique(idx)]
+        labels = labels.to(args.device)
+        images = images.to(args.device)
 
-        if args.gpu:
-            images = images.cuda()
-            labels = labels.cuda()
-
-        outputs = net(images)
-        loss = loss_function(outputs, labels)
+        emb = backbone(images)
+        if not args.base:
+            if args.ft_type == 'attn':
+                g = build_g(emb, idx).to(args.device)
+                logits = ft(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+            elif args.ft_type == 'ws':
+                logits = ft(emb, idx)
+        else:
+            logits = ft(emb)
+        loss = loss_function(logits, labels)
 
         test_loss += loss.item()
-        _, preds = outputs.max(1)
+        _, preds = logits.max(1)
         correct += preds.eq(labels).sum()
 
     finish = time.time()
@@ -91,13 +109,13 @@ if __name__ == '__main__':
     parser.add_argument('--backbone', type=str, default='resnet18')
     parser.add_argument('--ft-type', type=str, default='attn', choices=['attn', 'ws'])
     parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--save-epochs', type=int, default=10)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--input-size', type=int, default=224)
     parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--base', action='store_true', default=False)
-    parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate')
-    parser.add_argument('-resume', action='store_true', default=False, help='resume training')
+    parser.add_argument('--lr', type=float, default=0.001, help='initial learning rate') 
     
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--num-workers', type=int, default=8)
@@ -113,7 +131,7 @@ if __name__ == '__main__':
     cifar100_training_loader = get_training_dataloader(
         settings.CIFAR100_TRAIN_MEAN,
         settings.CIFAR100_TRAIN_STD,
-        num_workers=8,
+        num_workers=args.num_workers,
         batch_size=args.batch_size,
         shuffle=True
     )
@@ -121,7 +139,7 @@ if __name__ == '__main__':
     cifar100_test_loader = get_test_dataloader(
         settings.CIFAR100_TRAIN_MEAN,
         settings.CIFAR100_TRAIN_STD,
-        num_workers=8,
+        num_workers=args.num_workers,
         batch_size=args.batch_size,
         shuffle=True
     )
@@ -130,7 +148,7 @@ if __name__ == '__main__':
     backbone = models.__dict__[args.backbone](weights='DEFAULT')
     in_dim = backbone.fc.in_features
     for param in backbone.parameters():
-            param.requires_grad = False
+        param.requires_grad = False
     backbone.fc = nn.Identity()
     backbone = backbone.to(args.device)
 
@@ -151,68 +169,39 @@ if __name__ == '__main__':
             print(f"update param: {name}")
             params.append(param)
 
+    # set components
     loss_function = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(backbone.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-    train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
+    optimizer = optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=5e-4)
+    train_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     iter_per_epoch = len(cifar100_training_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 
-    if args.resume:
-        recent_folder = most_recent_folder(os.path.join(settings.CHECKPOINT_PATH, args.net), fmt=settings.DATE_FORMAT)
-        if not recent_folder:
-            raise Exception('no recent folder were found')
+    checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.backbone+'_'+args.ft_type, settings.TIME_NOW)
 
-        checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder)
-
-    else:
-        checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
-
-    #create checkpoint folder to save model
+    # create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
-    checkpoint_path = os.path.join(checkpoint_path, '{net}-{epoch}-{type}.pth')
+    checkpoint_path = os.path.join(checkpoint_path, '{model}-{epoch}-{type}.pth')
 
     best_acc = 0.0
-    if args.resume:
-        best_weights = best_acc_weights(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
-        if best_weights:
-            weights_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder, best_weights)
-            print('found best acc weights file:{}'.format(weights_path))
-            print('load best training file to test acc...')
-            ft.load_state_dict(th.load(weights_path))
-            best_acc = eval_training(tb=False)
-            print('best acc is {:0.2f}'.format(best_acc))
 
-        recent_weights_file = most_recent_weights(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
-        if not recent_weights_file:
-            raise Exception('no recent weights file were found')
-        weights_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder, recent_weights_file)
-        print('loading weights file {} to resume training.....'.format(weights_path))
-        ft.load_state_dict(th.load(weights_path))
-
-        resume_epoch = last_epoch(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
-
-
-    for epoch in range(1, settings.EPOCH + 1):
+    # start training
+    for epoch in range(1, args.epochs + 1):
         if epoch > args.warm:
             train_scheduler.step(epoch)
-
-        if args.resume:
-            if epoch <= resume_epoch:
-                continue
 
         train(epoch)
         acc = eval_training(epoch)
 
         #start to save best performance model after learning rate decay to 0.01
         if epoch > settings.MILESTONES[1] and best_acc < acc:
-            weights_path = checkpoint_path.format(net=args.net, epoch=epoch, type='best')
+            weights_path = checkpoint_path.format(model=args.backbone+'_'+args.ft_type, epoch=epoch, type='best')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
             best_acc = acc
             continue
 
-        if not epoch % settings.SAVE_EPOCH:
-            weights_path = checkpoint_path.format(net=args.net, epoch=epoch, type='regular')
+        if not epoch % args.save_epochs:
+            weights_path = checkpoint_path.format(model=args.backbone+'_'+args.ft_type, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             th.save(ft.state_dict(), weights_path)
