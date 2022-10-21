@@ -5,13 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["--ft-type", "ws", "--batch-size", "32"]
+        },
+        {
             "name": "base",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["--base"]
+            "args": [
+                "--base"
+            ]
         }
     ]
 }

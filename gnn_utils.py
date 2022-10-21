@@ -11,7 +11,7 @@ def aux_transforms(img_batch, trans_list, replica):
         idx.extend([i])
         for trans in trans_list:
             if trans == 'crop':
-                transform = transforms.RandomResizedCrop(size=(224, 224))
+                transform = transforms.RandomResizedCrop(size=(32, 32))
             elif trans == 'horflip':
                 transform = transforms.RandomHorizontalFlip()
             else:
@@ -39,7 +39,7 @@ def build_g(emb, idx):
     return g
 
 if __name__ == '__main__':
-    emb, idx = aux_transforms(th.ones((2, 3, 224, 224)), trans_list=['crop', 'horflip'], replica=2)
+    emb, idx = aux_transforms(th.ones((2, 3, 32, 32)), trans_list=['crop', 'horflip'], replica=2)
     g = build_g(emb, idx)
     print(1)
 
