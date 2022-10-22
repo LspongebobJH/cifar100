@@ -98,7 +98,7 @@ def eval_training(epoch=0):
     return correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
-
+    print("This is a TEST branch, DO NOT PUT ANY PERMANENT MODIFICATIONS HERE!!!")
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint-path', type=str, default='./checkpoint/resnet50_base/checkpoints/')
     parser.add_argument('--backbone', type=str, default='resnet50')
