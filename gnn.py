@@ -10,7 +10,9 @@ from gnn_utils import *
 class WS(nn.Module):
     def __init__(self, n_in_nodes, in_dim, out_dim):
         super().__init__()
-        self.w = nn.Parameter(th.rand(size=[n_in_nodes]))
+        # self.w = nn.Parameter(th.rand(size=[n_in_nodes]))
+        # self.w = nn.Parameter(th.ones(size=[n_in_nodes], dtype=th.float))
+        self.w = nn.Parameter(th.tensor([0.5]*n_in_nodes, dtype=th.float))
         self.lin = nn.Linear(in_dim, out_dim)
 
     def forward(self, h, idx, norm=None):
@@ -32,51 +34,46 @@ class GAT(nn.Module):
             self.layers.append(
                 dglnn.GATConv(
                     in_dim, out_dim, n_heads_list[0], 
-                    feat_drop=dropout, attn_drop=dropout, 
-                    negative_slope=neg_slope
+                    feat_drop=dropout, 
+                    negative_slope=neg_slope,
+                    allow_zero_in_degree=True
                 )
             )
         else:
             self.layers.append(
                 dglnn.GATConv(
                     in_dim, hid_dim, n_heads_list[0], 
-                    feat_drop=dropout, attn_drop=dropout, 
-                    negative_slope=neg_slope
+                    feat_drop=dropout, 
+                    negative_slope=neg_slope,
+                    allow_zero_in_degree=True
                 )
             )
             for i in range(1, n_layers-1):
                 self.layers.append(
                     dglnn.GATConv(
                         hid_dim * n_heads_list[i-1], hid_dim, n_heads_list[i], 
-                        feat_drop=dropout, attn_drop=dropout, 
-                        negative_slope=neg_slope
+                        feat_drop=dropout, 
+                        negative_slope=neg_slope,
+                        allow_zero_in_degree=True
                     )
                 )
             self.layers.append(
                 dglnn.GATConv(
                     hid_dim * n_heads_list[-2], out_dim, n_heads_list[-1], 
-                    feat_drop=dropout, attn_drop=dropout, 
-                    negative_slope=neg_slope
+                    feat_drop=dropout, 
+                    negative_slope=neg_slope,
+                    allow_zero_in_degree=True
                 )
             )
         self.act = F.relu # TODO: perhaps not the best. see how the original GAT is implemented
     
     def forward(self, g, h, attn=False):
-        if attn:
-            attn_list = []
         for layer in self.layers[:-1]:
-            if attn:
-                h, attn_emb = layer(g, h, attn)
-                h = self.act(h.flatten(1))
-                attn_list.append(attn_emb)
-            else:
-                h = self.act(layer(g, h)).flatten(1)
-               
+            h = self.act(layer(g, h)).flatten(1)
         if attn:
-            h, attn_emb = self.layers[-1](g, h, attn)
+            h, attn = self.layers[-1](g, h, attn)
             h = self.act(h.mean(dim=1))
-            attn_list.append(attn_emb)
-            return h, attn_list
+            return h, attn.squeeze()
         else:
             h = self.act(self.layers[-1](g, h, attn).mean(dim=1))
             return h

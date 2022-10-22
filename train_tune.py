@@ -20,6 +20,8 @@ def train(epoch):
     start = time.time()
     backbone.train()
     ft.train()
+    if args.aggr_type == 'ws':
+        w0 = aggr.w.detach().cpu()
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
         images, idx = aux_transforms(images, trans_list=['crop', 'horflip'], replica=args.replica)
         idx = idx.to(args.device)
@@ -31,9 +33,12 @@ def train(epoch):
         emb = backbone(images)
         if args.aggr_type == 'attn':
             g = build_g(emb, idx).to(args.device)
-            emb = aggr(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+            emb, attn = aggr(g, g.ndata['feat'], attn=True)
+            emb = emb[target_imgs_idx]
         elif args.aggr_type == 'ws':
             emb = aggr(emb, idx)
+            print("Initial W:", w0)
+            print("Current W", aggr.w.detach().cpu())
         logits = ft(emb)
         loss = loss_function(logits, labels)
         loss.backward()
@@ -75,7 +80,8 @@ def eval_training(epoch=0):
         emb = backbone(images)
         if args.aggr_type == 'attn':
             g = build_g(emb, idx).to(args.device)
-            emb = aggr(g, g.ndata['feat'], attn=False)[target_imgs_idx]
+            emb, attn = aggr(g, g.ndata['feat'], attn=True)
+            emb = emb[target_imgs_idx]
         elif args.aggr_type == 'ws':
             emb = aggr(emb, idx)
         logits = ft(emb)
@@ -85,6 +91,8 @@ def eval_training(epoch=0):
         _, preds = logits.max(1)
         correct += preds.eq(labels).sum()
 
+    if args.aggr_type == 'ws':
+        print(aggr.w.detach().cpu())
     finish = time.time()
     print('Evaluating Network.....')
     print('Test set: Epoch: {}, Average loss: {:.4f}, Accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
@@ -109,18 +117,18 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=128)
     # parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--base', action='store_true', default=False)
-    parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate') 
+    parser.add_argument('--lr', type=float, default=0.001, help='initial learning rate') 
     parser.add_argument('--save-epochs', type=int, default=1)
     
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--num-workers', type=int, default=8)
 
     # attn
-    parser.add_argument('--hid-dim', type=int, default=4)
+    parser.add_argument('--hid-dim', type=int, default=32)
     parser.add_argument('--n-heads-list', nargs='+', type=int, default=[1])
 
     # training
-    parser.add_argument('--milestones', nargs='+', type=int, default=[1, 3, 5])
+    parser.add_argument('--milestones', nargs='+', type=int, default=[3, 5])
 
     # deprecate
     # parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
@@ -166,7 +174,7 @@ if __name__ == '__main__':
     # create aggr part
     if args.aggr_type == 'attn':
         aggr = GAT(n_layers=1, n_heads_list=args.n_heads_list, in_dim=in_dim, 
-                hid_dim=args.hid_dim, out_dim=in_dim, dropout=0.6, neg_slope=0.2)
+                hid_dim=args.hid_dim, out_dim=in_dim, dropout=0.3, neg_slope=0.2)
     elif args.aggr_type == 'ws':
         aggr = WS(n_in_nodes=5, in_dim=in_dim, out_dim=in_dim)
     aggr = aggr.to(args.device)
@@ -179,7 +187,7 @@ if __name__ == '__main__':
     elif len(args.milestones) == 1:
         train_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.milestones[0], gamma=0.2)
     else:
-        train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2)
+        train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.milestones, gamma=0.2)
     iter_per_epoch = len(cifar100_training_loader)
     # warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
 

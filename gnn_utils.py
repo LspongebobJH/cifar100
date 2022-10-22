@@ -28,11 +28,10 @@ def build_g(emb, idx):
         _idx = th.where(idx == i)[0]
         g = dgl.graph(
             (
-                th.tensor([0] * len(_idx)),
-                th.tensor(list(range(len(_idx))))
+                th.tensor(list(range(len(_idx)))),
+                th.tensor([0] * len(_idx))
             )
-        )
-        g = dgl.to_bidirected(g).to(emb.device)
+        ).to(emb.device)
         g.ndata['feat'] = emb[_idx]
         g_list.append(g)
     g = dgl.batch(g_list)
