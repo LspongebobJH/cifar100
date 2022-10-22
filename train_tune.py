@@ -109,7 +109,7 @@ if __name__ == '__main__':
     # parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--base', action='store_true', default=False)
     parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate') 
-    parser.add_argument('--save-epochs', type=int, default=10)
+    parser.add_argument('--save-epochs', type=int, default=1)
     
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--num-workers', type=int, default=8)
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
         #start to save best performance model after learning rate decay to 0.01
         if best_acc < acc:
-            weights_path = checkpoint_path.format(model=args.aggr_type, epoch=epoch, type='best')
+            weights_path = checkpoint_path.format(aggr=args.aggr_type, epoch=epoch, type='best')
             print('saving weights file to {}'.format(weights_path))
             th.save(backbone.state_dict(), weights_path)
 
@@ -209,6 +209,6 @@ if __name__ == '__main__':
             continue
 
         if not epoch % args.save_epochs:
-            weights_path = checkpoint_path.format(model=args.aggr_type, epoch=epoch, type='regular')
+            weights_path = checkpoint_path.format(aggr=args.aggr_type, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             th.save(backbone.state_dict(), weights_path)
