@@ -65,18 +65,18 @@ class GAT(nn.Module):
         if attn:
             attn_list = []
         for layer in self.layers[:-1]:
-            if not attn:
-                h = self.act(layer(g, h, attn)).flatten(1)
-            else:
-                h, attn_emb =  self.act(layer(g, h, attn))
-                h = h.flatten(1)
+            if attn:
+                h, attn_emb = layer(g, h, attn)
+                h = self.act(h.flatten(1))
                 attn_list.append(attn_emb)
-        if not attn:
-            h = self.layers[-1](g, h, attn).mean(dim=1)
-            return h
-        else:
-            h, attn_emb =  self.act(layer(g, h, attn))
-            h = h.mean(dim=1)
+            else:
+                h = self.act(layer(g, h)).flatten(1)
+               
+        if attn:
+            h, attn_emb = self.layers[-1](g, h, attn)
+            h = self.act(h.mean(dim=1))
             attn_list.append(attn_emb)
             return h, attn_list
-        
+        else:
+            h = self.act(self.layers[-1](g, h, attn).mean(dim=1))
+            return h

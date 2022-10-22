@@ -15,6 +15,10 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+def fix_all_params(model):
+    for param in model.parameters():
+        param.requires_grad = False
+        
 def get_network(backbone):
     """ return given network
     """
